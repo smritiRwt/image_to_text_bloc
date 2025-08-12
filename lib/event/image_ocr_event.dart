@@ -1,13 +1,17 @@
-abstract class ImageOcrEvent {}
+import 'package:equatable/equatable.dart';
+import 'package:image_picker/image_picker.dart';
 
-class PickImageEvent extends ImageOcrEvent {}
-
-class CropImageEvent extends ImageOcrEvent {
-  final String imagePath;
-  CropImageEvent(this.imagePath);
+abstract class ImageTextEvent extends Equatable {
+  const ImageTextEvent();
+  @override
+  List<Object?> get props => [];
 }
 
-class PerformOcrEvent extends ImageOcrEvent {
-  final String imagePath;
-  PerformOcrEvent(this.imagePath);
+class PickImageEvent extends ImageTextEvent {
+  final ImageSource source;
+  const PickImageEvent(this.source);
+  @override
+  List<Object?> get props => [source];
 }
+
+class CropAndRecognizeEvent extends ImageTextEvent {}

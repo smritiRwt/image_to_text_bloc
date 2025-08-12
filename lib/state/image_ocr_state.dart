@@ -1,21 +1,38 @@
-abstract class ImageOcrState {}
+import 'dart:io';
+import 'package:equatable/equatable.dart';
 
-class ImageOcrInitial extends ImageOcrState {}
+enum ImageTextStatus { initial,uploading, picked, processing, done, error }
 
-class ImageOcrLoading extends ImageOcrState {}
+class ImageTextState extends Equatable {
+  final File? imageFile;
+  final String recognizedText;
+  final ImageTextStatus status;
+  final String? errorMessage;
 
-class ImageOcrImagePicked extends ImageOcrState {
-  final String imagePath;
-  ImageOcrImagePicked(this.imagePath);
-}
+  const ImageTextState({
+    this.imageFile,
+    this.recognizedText = '',
+    required this.status,
+    this.errorMessage,
+  });
 
-class ImageOcrSuccess extends ImageOcrState {
-  final String imagePath;
-  final String scannedText;
-  ImageOcrSuccess({required this.imagePath, required this.scannedText});
-}
+  factory ImageTextState.initial() =>
+      const ImageTextState(status: ImageTextStatus.initial);
 
-class ImageOcrFailure extends ImageOcrState {
-  final String message;
-  ImageOcrFailure(this.message);
+  ImageTextState copyWith({
+    File? imageFile,
+    String? recognizedText,
+    ImageTextStatus? status,
+    String? errorMessage,
+  }) {
+    return ImageTextState(
+      imageFile: imageFile ?? this.imageFile,
+      recognizedText: recognizedText ?? this.recognizedText,
+      status: status ?? this.status,
+      errorMessage: errorMessage ?? this.errorMessage,
+    );
+  }
+
+  @override
+  List<Object?> get props => [imageFile, recognizedText, status, errorMessage];
 }

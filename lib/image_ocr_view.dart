@@ -1,117 +1,56 @@
-import 'dart:io';
+// image_text_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_to_text/bloc/image_ocr_bloc.dart';
 import 'package:image_to_text/event/image_ocr_event.dart';
 import 'package:image_to_text/state/image_ocr_state.dart';
+import 'package:crop_image/crop_image.dart';
+import 'package:image_picker/image_picker.dart';
 
-class ImageOcrView extends StatelessWidget {
-  const ImageOcrView({Key? key}) : super(key: key);
-
+class ImageTextPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("OCR Scanner")),
-      body: BlocBuilder<ImageOcrBloc, ImageOcrState>(
-        builder: (context, state) {
-          if (state is ImageOcrLoading) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is ImageOcrImagePicked) {
-            return _Preview(imagePath: state.imagePath);
-          } else if (state is ImageOcrSuccess) {
-            return _Result(imagePath: state.imagePath, text: state.scannedText);
-          } else if (state is ImageOcrFailure) {
-            return _Error(message: state.message);
-          }
-          return _PickButton();
-        },
-      ),
-    );
-  }
-}
-
-class _PickButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ElevatedButton.icon(
-        onPressed: () => context.read<ImageOcrBloc>().add(PickImageEvent()),
-        icon: const Icon(Icons.image_search),
-        label: const Text("Pick Image"),
-      ),
-    );
-  }
-}
-
-class _Preview extends StatelessWidget {
-  final String imagePath;
-  const _Preview({required this.imagePath});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (File(imagePath).existsSync())
-          Image.file(File(imagePath), height: 200),
-        const SizedBox(height: 10),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.crop),
-          label: const Text("Crop & Scan"),
-          onPressed: () => context.read<ImageOcrBloc>().add(CropImageEvent(imagePath)),
+    return BlocProvider(
+      create: (_) => ImageTextBloc(),
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Crop & OCR')),
+        body: BlocBuilder<ImageTextBloc, ImageTextState>(
+          builder: (context, state) {
+            if (state.status == ImageTextStatus.initial) {
+              return Center(
+                child: ElevatedButton(
+                  onPressed: () => context.read<ImageTextBloc>()
+                    .add(const PickImageEvent(ImageSource.gallery)),
+                  child: const Text('Pick Image'),
+                ),
+              );
+            } else if (state.imageFile != null) {
+              return Column(
+                children: [
+                  Expanded(
+                    child: CropImage(
+                      controller: context.read<ImageTextBloc>().cropController,
+                      image: Image.file(state.imageFile!),
+                    ),
+                  ),
+                  if (state.status == ImageTextStatus.processing)
+                    const CircularProgressIndicator(),
+                  ElevatedButton(
+                    onPressed: () =>
+                        context.read<ImageTextBloc>().add(CropAndRecognizeEvent()),
+                    child: const Text('Crop & Recognize Text'),
+                  ),
+                  if (state.status == ImageTextStatus.done)
+                    Expanded(child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(state.recognizedText, style: TextStyle(fontSize: 16)),
+                    )),
+                ],
+              );
+            }
+            return const SizedBox.shrink();
+          },
         ),
-        const SizedBox(height: 8),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.search),
-          label: const Text("Scan Without Crop"),
-          onPressed: () => context.read<ImageOcrBloc>().add(PerformOcrEvent(imagePath)),
-        ),
-      ],
-    );
-  }
-}
-
-class _Result extends StatelessWidget {
-  final String imagePath, text;
-  const _Result({required this.imagePath, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Image.file(File(imagePath), height: 200),
-        const SizedBox(height: 16),
-        Text(text.isEmpty ? 'No text found' : text),
-        const SizedBox(height: 16),
-        ElevatedButton.icon(
-          onPressed: () => context.read<ImageOcrBloc>().add(PickImageEvent()),
-          icon: const Icon(Icons.image_search),
-          label: const Text("Pick Another"),
-        ),
-      ],
-    );
-  }
-}
-
-class _Error extends StatelessWidget {
-  final String message;
-  const _Error({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(message, style: const TextStyle(color: Colors.red)),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.refresh),
-            label: const Text("Try Again"),
-            onPressed: () => context.read<ImageOcrBloc>().add(PickImageEvent()),
-          )
-        ],
       ),
     );
   }

@@ -1,84 +1,86 @@
 import 'dart:io';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:image_cropper/image_cropper.dart';
+import 'package:image/image.dart' as img; // For real pixel cropping
+import 'package:bloc/bloc.dart';
+import 'package:crop_image/crop_image.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:image_to_text/event/image_ocr_event.dart' show ImageOcrEvent, CropImageEvent, PickImageEvent, PerformOcrEvent;
+import 'package:image_picker/image_picker.dart';
+import 'package:image_to_text/event/image_ocr_event.dart';
 import 'package:image_to_text/state/image_ocr_state.dart';
-import 'package:permission_handler/permission_handler.dart';
 
-
-class ImageOcrBloc extends Bloc<ImageOcrEvent, ImageOcrState> {
+class ImageTextBloc extends Bloc<ImageTextEvent, ImageTextState> {
   final ImagePicker _picker = ImagePicker();
+  final CropController cropController = CropController();
 
-  ImageOcrBloc() : super(ImageOcrInitial()) {
+  ImageTextBloc() : super(ImageTextState.initial()) {
     on<PickImageEvent>(_onPickImage);
-    on<CropImageEvent>(_onCropImage);
-    on<PerformOcrEvent>(_onPerformOcr);
+    on<CropAndRecognizeEvent>(_onCropAndRecognize);
   }
 
-  Future<void> _onPickImage(PickImageEvent event, Emitter<ImageOcrState> emit) async {
-    emit(ImageOcrLoading());
+  Future<void> _onPickImage(
+      PickImageEvent event, Emitter<ImageTextState> emit) async {
+    // Show uploading loader
+    emit(state.copyWith(status: ImageTextStatus.uploading));
 
-    if (!await _requestPermissions()) {
-      emit(ImageOcrFailure('Permissions not granted'));
+    // Delay for 2 seconds to show loader animation
+    await Future.delayed(const Duration(seconds: 2));
+
+    // Pick image
+    final XFile? file = await _picker.pickImage(source: event.source);
+    if (file == null) {
+      emit(state.copyWith(status: ImageTextStatus.initial));
       return;
     }
 
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null && File(image.path).existsSync()) {
-      emit(ImageOcrImagePicked(image.path));
-    } else {
-      emit(ImageOcrFailure('Image not found or invalid path'));
-    }
+    emit(state.copyWith(
+      imageFile: File(file.path),
+      status: ImageTextStatus.picked,
+    ));
   }
 
-  Future<void> _onCropImage(CropImageEvent event, Emitter<ImageOcrState> emit) async {
-    emit(ImageOcrLoading());
+  Future<void> _onCropAndRecognize(
+      CropAndRecognizeEvent event, Emitter<ImageTextState> emit) async {
+    if (state.imageFile == null) return;
+    emit(state.copyWith(status: ImageTextStatus.processing));
 
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: event.imagePath,
-      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-      uiSettings: [
-        AndroidUiSettings(toolbarTitle: 'Crop Image'),
-        IOSUiSettings(title: 'Crop Image'),
-      ],
+    // Get crop rectangle
+    final rect = cropController.crop;
+    final bytes = await state.imageFile!.readAsBytes();
+    final originalImage = img.decodeImage(bytes);
+
+    if (originalImage == null) {
+      emit(state.copyWith(
+        status: ImageTextStatus.error,
+        errorMessage: 'Could not decode image',
+      ));
+      return;
+    }
+
+    // Calculate crop area in pixels
+    final cropX = (rect.left * originalImage.width).round();
+    final cropY = (rect.top * originalImage.height).round();
+    final cropWidth = (rect.width * originalImage.width).round();
+    final cropHeight = (rect.height * originalImage.height).round();
+
+    final croppedImage = img.copyCrop(
+      originalImage,
+      x: cropX,
+      y: cropY,
+      width: cropWidth,
+      height: cropHeight,
     );
 
-    if (croppedFile != null && File(croppedFile.path).existsSync()) {
-      add(PerformOcrEvent(croppedFile.path));
-    } else {
-      emit(ImageOcrImagePicked(event.imagePath));
-    }
-  }
+    // Save cropped image to temp file
+    final croppedFile = File('${Directory.systemTemp.path}/cropped.png')
+      ..writeAsBytesSync(img.encodePng(croppedImage));
 
-  Future<void> _onPerformOcr(PerformOcrEvent event, Emitter<ImageOcrState> emit) async {
-    emit(ImageOcrLoading());
+    // OCR with ML Kit
+    final input = InputImage.fromFilePath(croppedFile.path);
+    final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    final result = await recognizer.processImage(input);
 
-    if (!File(event.imagePath).existsSync()) {
-      emit(ImageOcrFailure('File path not found'));
-      return;
-    }
-
-    try {
-      final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
-      final inputImage = InputImage.fromFilePath(event.imagePath);
-      final result = await textRecognizer.processImage(inputImage);
-      await textRecognizer.close();
-
-      emit(ImageOcrSuccess(imagePath: event.imagePath, scannedText: result.text));
-    } catch (_) {
-      emit(ImageOcrFailure('Failed to recognize text'));
-    }
-  }
-
-  Future<bool> _requestPermissions() async {
-    var statuses = await [
-      Permission.camera,
-      Permission.photos,
-      Permission.storage,
-    ].request();
-
-    return statuses.values.every((status) => status.isGranted);
+    emit(state.copyWith(
+      recognizedText: result.text,
+      status: ImageTextStatus.done,
+    ));
   }
 }
