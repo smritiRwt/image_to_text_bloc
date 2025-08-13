@@ -84,3 +84,4 @@ class ImageTextBloc extends Bloc<ImageTextEvent, ImageTextState> {
     ));
   }
 }
+  
