@@ -177,15 +177,7 @@ Widget _buildPickUI(BuildContext context) {
                                 color: Colors.white,
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Choose from Gallery',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF2196F3),
-                              ),
-                            ),
+                           
                             const SizedBox(height: 6),
                             const Text(
                               'Select an existing image from your device',
@@ -260,46 +252,75 @@ Widget _buildPickUI(BuildContext context) {
                 const SizedBox(height: 20),
 
                 // Camera Button
-                Center(
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF6890F7),
-                          Color(0xFF4E7FF5),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+               Container(
+                padding: const EdgeInsets.all(16),
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFF4E7FF5),
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF6890F7).withOpacity(0.4),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF6890F7),
+                                Color(0xFF4E7FF5),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFF4E7FF5),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF6890F7).withOpacity(0.4),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () => context
+                                  .read<ImageTextBloc>()
+                                  .add(const PickImageEvent(ImageSource.camera)),
+                              child: const Icon(
+                                Icons.camera_alt_rounded, 
+                                color: Colors.white, 
+                                size: 24,
+                              ),
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () => context
-                            .read<ImageTextBloc>()
-                            .add(const PickImageEvent(ImageSource.camera)),
-                        child: const Icon(
-                          Icons.camera_alt_rounded, 
-                          color: Colors.white, 
-                          size: 24,
-                        ),
                       ),
-                    ),
+                       const SizedBox(height: 6),
+                            const Text(
+                              'Open camera to take a new photo',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                                height: 1.3,
+                              ),
+                            ),
+                    ],
                   ),
                 ),
               ],
@@ -487,6 +508,7 @@ Widget _buildResultUI(BuildContext context, ImageTextState state) {
                     elevation: 2,
                     borderRadius: BorderRadius.circular(12),
                     child: DashedBorderContainer(
+                      
                       color: const Color(0xFF789AF0),
                       strokeWidth: 1.5,
                       dashLength: 6,
