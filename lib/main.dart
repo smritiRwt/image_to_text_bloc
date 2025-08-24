@@ -42,9 +42,8 @@ class ImageTextPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 121, 155, 240),
-        title: const Text('Snap & Extract',style: TextStyle(color: Colors.white,fontSize: 18,fontWeight: FontWeight.bold),),
+      appBar: AppBar(   backgroundColor: const Color(0xFF6A95F5),
+        title: const Text('ReadPicture- Picture to text converter',style: TextStyle(color: Colors.white,fontSize: 14,fontWeight: FontWeight.bold),),
         centerTitle: true,
       ),
       body: BlocBuilder<ImageTextBloc, ImageTextState>(
@@ -117,9 +116,9 @@ Widget _buildPickUI(BuildContext context) {
 
           // Upload Options
           DashedBorderContainer(
-            color: const Color.fromARGB(255, 121, 155, 240),
-            strokeWidth: 1,
-            dashLength: 8,
+            color: const Color.fromARGB(255, 166, 186, 238),
+            strokeWidth: 0.8,
+            dashLength: 6,
             gapLength: 4,
             cornerRadius: 16,
             padding: const EdgeInsets.all(32),
@@ -183,8 +182,8 @@ Widget _buildPickUI(BuildContext context) {
                               'Select an existing image from your device',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey,
+                                fontSize: 12,
+                                color: Colors.black,
                                 height: 1.3,
                               ),
                             ),
@@ -315,8 +314,8 @@ Widget _buildPickUI(BuildContext context) {
                               'Open camera to take a new photo',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey,
+                                fontSize: 12,
+                                color: Colors.black,
                                 height: 1.3,
                               ),
                             ),
